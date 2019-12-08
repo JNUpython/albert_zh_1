@@ -27,105 +27,122 @@ import tokenization
 import tensorflow as tf
 
 # from loss import bi_tempered_logistic_loss
+from my_logger import logger
+from config import config
 
 flags = tf.flags
 
 FLAGS = flags.FLAGS
 
-## Required parameters
+# -----------------------------------------Required parameters----------------------------------------------------
 flags.DEFINE_string(
-    "data_dir", None,
-    "The input data dir. Should contain the .tsv files (or other data files) "
-    "for the task.")
-
-flags.DEFINE_string(
-    "bert_config_file", None,
-    "The config json file corresponding to the pre-trained BERT model. "
-    "This specifies the model architecture.")
-
-flags.DEFINE_string("task_name", None, "The name of the task to train.")
-
-flags.DEFINE_string("vocab_file", None,
-                    "The vocabulary file that the BERT model was trained on.")
+    "data_dir", config.get_lcqmc_classify("data_dir"),
+    "The input data dir. Should contain the .tsv files (or other data files) for the task.")
 
 flags.DEFINE_string(
-    "output_dir", None,
+    "bert_config_file", config.get_model_tiny_bert("model_config_file"),
+    "The config json file corresponding to the pre-trained BERT model. This specifies the model architecture.")
+
+flags.DEFINE_string(
+    "task_name", config.get_lcqmc_classify("task_name"),
+    "The name of the task to train.")
+
+flags.DEFINE_string(
+    "vocab_file", config.get_model_tiny_bert("vocab_file"),
+    "The vocabulary file that the BERT model was trained on.")
+
+flags.DEFINE_string(
+    "output_dir", os.path.join(config.get_model_tiny_bert("model_name"), config.get_lcqmc_classify("task_name")),
     "The output directory where the model checkpoints will be written.")
 
-## Other parameters
-
+# Other parameters
 flags.DEFINE_string(
-    "init_checkpoint", None,
+    "init_checkpoint", config.get_model_tiny_bert("init_checkpoint"),
     "Initial checkpoint (usually from a pre-trained BERT model).")
 
 flags.DEFINE_bool(
-    "do_lower_case", True,
-    "Whether to lower case the input text. Should be True for uncased "
-    "models and False for cased models.")
+    "do_lower_case", bool(int(config.get_lcqmc_classify("do_lower_case"))),
+    "Whether to lower case the input text. Should be True for uncased models and False for cased models.")
 
 flags.DEFINE_integer(
-    "max_seq_length", 128,
+    "max_seq_length", int(config.get_lcqmc_classify("max_seq_length")),
     "The maximum total input sequence length after WordPiece tokenization. "
-    "Sequences longer than this will be truncated, and sequences shorter "
-    "than this will be padded.")
-
-flags.DEFINE_bool("do_train", False, "Whether to run training.")
-
-flags.DEFINE_bool("do_eval", False, "Whether to run eval on the dev set.")
+    "Sequences longer than this will be truncated, and sequences shorter than this will be padded.")
 
 flags.DEFINE_bool(
-    "do_predict", False,
+    "do_train", bool(int(config.get_lcqmc_classify("do_train"))),
+    "Whether to run training.")
+
+flags.DEFINE_bool(
+    "do_eval", bool(int(config.get_lcqmc_classify("do_eval"))),
+    "Whether to run eval on the dev set.")
+
+flags.DEFINE_bool(
+    "do_predict", bool(int(config.get_lcqmc_classify("do_predict"))),
     "Whether to run the model in inference mode on the test set.")
 
-flags.DEFINE_integer("train_batch_size", 32, "Total batch size for training.")
+flags.DEFINE_integer(
+    "train_batch_size", int(config.get_lcqmc_classify("train_batch_size")),
+    "Total batch size for training.")
 
-flags.DEFINE_integer("eval_batch_size", 8, "Total batch size for eval.")
+flags.DEFINE_integer(
+    "eval_batch_size", int(config.get_lcqmc_classify("eval_batch_size")),
+    "Total batch size for eval.")
 
-flags.DEFINE_integer("predict_batch_size", 8, "Total batch size for predict.")
-
-flags.DEFINE_float("learning_rate", 5e-5, "The initial learning rate for Adam.")
-
-flags.DEFINE_float("num_train_epochs", 3.0,
-                   "Total number of training epochs to perform.")
+flags.DEFINE_integer(
+    "predict_batch_size", int(config.get_lcqmc_classify("predict_batch_size")),
+    "Total batch size for predict.")
 
 flags.DEFINE_float(
-    "warmup_proportion", 0.1,
+    "learning_rate", float(config.get_model_tiny_bert("learning_rate")),
+    "The initial learning rate for Adam.")
+
+flags.DEFINE_float(
+    "num_train_epochs", float(config.get_lcqmc_classify("num_train_epochs")),
+    "Total number of training epochs to perform.")
+
+flags.DEFINE_float(
+    "warmup_proportion", float(config.get_model_tiny_bert("warmup_proportion")),
     "Proportion of training to perform linear learning rate warmup for. "
     "E.g., 0.1 = 10% of training.")
 
-flags.DEFINE_integer("save_checkpoints_steps", 1000,
-                     "How often to save the model checkpoint.")
+flags.DEFINE_integer(
+    "save_checkpoints_steps", int(config.get_lcqmc_classify("save_checkpoints_steps")),
+    "How often to save the model checkpoint.")
 
-flags.DEFINE_integer("iterations_per_loop", 1000,
-                     "How many steps to make in each estimator call.")
+flags.DEFINE_integer(
+    "iterations_per_loop", int(config.get_lcqmc_classify("iterations_per_loop")),
+    "How many steps to make in each estimator call.")
 
-flags.DEFINE_bool("use_tpu", False, "Whether to use TPU or GPU/CPU.")
+flags.DEFINE_bool(
+    "use_tpu", False,
+    "Whether to use TPU or GPU/CPU.")
 
 tf.flags.DEFINE_string(
     "tpu_name", None,
     "The Cloud TPU to use for training. This should be either the name "
-    "used when creating the Cloud TPU, or a grpc://ip.address.of.tpu:8470 "
-    "url.")
+    "used when creating the Cloud TPU, or a grpc://ip.address.of.tpu:8470 url.")
 
 tf.flags.DEFINE_string(
     "tpu_zone", None,
     "[Optional] GCE zone where the Cloud TPU is located in. If not "
-    "specified, we will attempt to automatically detect the GCE project from "
-    "metadata.")
+    "specified, we will attempt to automatically detect the GCE project from metadata.")
 
 tf.flags.DEFINE_string(
     "gcp_project", None,
     "[Optional] Project name for the Cloud TPU-enabled project. If not "
-    "specified, we will attempt to automatically detect the GCE project from "
-    "metadata.")
+    "specified, we will attempt to automatically detect the GCE project from metadata.")
 
-tf.flags.DEFINE_string("master", None, "[Optional] TensorFlow master URL.")
+tf.flags.DEFINE_string(
+    "master", None,
+    "[Optional] TensorFlow master URL.")
 
 flags.DEFINE_integer(
     "num_tpu_cores", 8,
     "Only used if `use_tpu` is True. Total number of TPU cores to use.")
 
 
+# ------------------------------------------- define input------------------------------------------------------
 class InputExample(object):
     """A single training/test example for simple sequence classification."""
 
@@ -622,7 +639,6 @@ class LCQMCPairClassificationProcessor(DataProcessor):  # TODO NEED CHANGE2
         """See base class."""
         return self._create_examples(
             self._read_tsv(os.path.join(data_dir, "train.txt")), "train")
-        # dev_0827.tsv
 
     def get_dev_examples(self, data_dir):
         """See base class."""
@@ -652,8 +668,7 @@ class LCQMCPairClassificationProcessor(DataProcessor):  # TODO NEED CHANGE2
                 label = tokenization.convert_to_unicode(line[2])
                 text_a = tokenization.convert_to_unicode(line[0])
                 text_b = tokenization.convert_to_unicode(line[1])
-                examples.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
+                examples.append(InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
             except Exception:
                 print('###error.i:', i, line)
         return examples
@@ -668,18 +683,17 @@ class SentencePairClassificationProcessor(DataProcessor):
     def get_train_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "train_0827.tsv")), "train")
-        # dev_0827.tsv
+            self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
 
     def get_dev_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "dev_0827.tsv")), "dev")
+            self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
 
     def get_test_examples(self, data_dir):
         """See base class."""
         return self._create_examples(
-            self._read_tsv(os.path.join(data_dir, "test_0827.tsv")), "test")
+            self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
 
     def get_labels(self):
         """See base class."""
@@ -693,6 +707,8 @@ class SentencePairClassificationProcessor(DataProcessor):
         for (i, line) in enumerate(lines):
             # print('#i:',i,line)
             if i == 0:
+                # TODO 为什么第一行不要？？？
+                logger.info(line)
                 continue
             guid = "%s-%s" % (set_type, i)
             try:
@@ -706,20 +722,56 @@ class SentencePairClassificationProcessor(DataProcessor):
         return examples
 
 
+class SingleSentenceClassificationProcessor(DataProcessor):
+    """单句子非注意机制的分类"""
+
+    def __init__(self):
+        self.language = "zh"
+
+    def get_train_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+
+    def get_dev_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, "dev.csv")), "dev")
+
+    def get_test_examples(self, data_dir):
+        """See base class."""
+        return self._create_examples(
+            self._read_tsv(os.path.join(data_dir, "test.tsv")), "test")
+
+    def get_labels(self):
+        """See base class."""
+        return [str(v) for v in range(config.get_ipe_punishment_classify("num_classes"))]
+
+    def _create_examples(self, lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines[1:]):
+            # Only the test set has a header
+            # logger.info(line[0])
+            guid = "%s-%s" % (set_type, i)
+            # 原始数据不需要经过处理，直接选取1， 3 列
+            label = tokenization.convert_to_unicode(line[0])
+            text_a = tokenization.convert_to_unicode(line[1])
+            examples.append(InputExample(guid=guid, text_a=text_a, text_b=None, label=label))
+            # logger.info(examples[0])
+            # break
+        return examples
+
+
 # This function is not used by this file but is still used by the Colab and
 # people who depend on it.
-def convert_examples_to_features(examples, label_list, max_seq_length,
-                                 tokenizer):
+def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer):
     """Convert a set of `InputExample`s to a list of `InputFeatures`."""
-
     features = []
     for (ex_index, example) in enumerate(examples):
         if ex_index % 10000 == 0:
             tf.logging.info("Writing example %d of %d" % (ex_index, len(examples)))
-
-        feature = convert_single_example(ex_index, example, label_list,
-                                         max_seq_length, tokenizer)
-
+        feature = convert_single_example(ex_index, example, label_list, max_seq_length, tokenizer)
         features.append(feature)
     return features
 
@@ -731,7 +783,6 @@ def main(_):
         "sentence_pair": SentencePairClassificationProcessor,
         "lcqmc_pair": LCQMCPairClassificationProcessor,
         "lcqmc": LCQMCPairClassificationProcessor
-
     }
 
     tokenization.validate_case_matches_checkpoint(FLAGS.do_lower_case,
