@@ -785,12 +785,10 @@ def main(_):
         "lcqmc": LCQMCPairClassificationProcessor
     }
 
-    tokenization.validate_case_matches_checkpoint(FLAGS.do_lower_case,
-                                                  FLAGS.init_checkpoint)
+    tokenization.validate_case_matches_checkpoint(FLAGS.do_lower_case, FLAGS.init_checkpoint)
 
     if not FLAGS.do_train and not FLAGS.do_eval and not FLAGS.do_predict:
-        raise ValueError(
-            "At least one of `do_train`, `do_eval` or `do_predict' must be True.")
+        raise ValueError("At least one of `do_train`, `do_eval` or `do_predict' must be True.")
 
     bert_config = modeling.BertConfig.from_json_file(FLAGS.bert_config_file)
 
@@ -801,7 +799,6 @@ def main(_):
             (FLAGS.max_seq_length, bert_config.max_position_embeddings))
 
     tf.gfile.MakeDirs(FLAGS.output_dir)
-
     task_name = FLAGS.task_name.lower()
 
     if task_name not in processors:
@@ -811,8 +808,7 @@ def main(_):
 
     label_list = processor.get_labels()
 
-    tokenizer = tokenization.FullTokenizer(
-        vocab_file=FLAGS.vocab_file, do_lower_case=FLAGS.do_lower_case)
+    tokenizer = tokenization.FullTokenizer(vocab_file=FLAGS.vocab_file, do_lower_case=FLAGS.do_lower_case)
 
     tpu_cluster_resolver = None
     if FLAGS.use_tpu and FLAGS.tpu_name:
@@ -866,8 +862,8 @@ def main(_):
         train_file_exists = os.path.exists(train_file)
         print("###train_file_exists:", train_file_exists, " ;train_file:", train_file)
         if not train_file_exists:  # if tf_record file not exist, convert from raw text file. # TODO
-            file_based_convert_examples_to_features(train_examples, label_list, FLAGS.max_seq_length, tokenizer,
-                                                    train_file)
+            file_based_convert_examples_to_features(
+                train_examples, label_list, FLAGS.max_seq_length, tokenizer, train_file)
         tf.logging.info("***** Running training *****")
         tf.logging.info("  Num examples = %d", len(train_examples))
         tf.logging.info("  Batch size = %d", FLAGS.train_batch_size)
@@ -892,8 +888,7 @@ def main(_):
                 eval_examples.append(PaddingInputExample())
 
         eval_file = os.path.join(FLAGS.output_dir, "eval.tf_record")
-        file_based_convert_examples_to_features(
-            eval_examples, label_list, FLAGS.max_seq_length, tokenizer, eval_file)
+        file_based_convert_examples_to_features(eval_examples, label_list, FLAGS.max_seq_length, tokenizer, eval_file)
 
         tf.logging.info("***** Running evaluation *****")
         tf.logging.info("  Num examples = %d (%d actual, %d padding)",
@@ -964,9 +959,8 @@ def main(_):
                 predict_examples.append(PaddingInputExample())
 
         predict_file = os.path.join(FLAGS.output_dir, "predict.tf_record")
-        file_based_convert_examples_to_features(predict_examples, label_list,
-                                                FLAGS.max_seq_length, tokenizer,
-                                                predict_file)
+        file_based_convert_examples_to_features(
+            predict_examples, label_list, FLAGS.max_seq_length, tokenizer,predict_file)
 
         tf.logging.info("***** Running prediction*****")
         tf.logging.info("  Num examples = %d (%d actual, %d padding)",
