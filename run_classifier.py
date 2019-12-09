@@ -52,7 +52,9 @@ flags.DEFINE_string(
     "The vocabulary file that the BERT model was trained on.")
 
 flags.DEFINE_string(
-    "output_dir", os.path.join(config.get_model_tiny_bert("model_name"), config.get_lcqmc_classify("task_name")),
+    "output_dir", os.path.join("checkpoints",
+                               config.get_model_tiny_bert("model_name"),
+                               config.get_lcqmc_classify("task_name")),
     "The output directory where the model checkpoints will be written.")
 
 # Other parameters
