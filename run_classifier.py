@@ -113,7 +113,7 @@ flags.DEFINE_integer(
     "How often to save the model checkpoint.")
 
 flags.DEFINE_integer(
-    "iterations_per_loop", int(config.get_lcqmc_classify("iterations_per_loop")),
+    "iterations_per_loop", 10,
     "How many steps to make in each estimator call.")
 
 flags.DEFINE_bool(
@@ -222,10 +222,8 @@ class DataProcessor(object):
             return lines
 
 
-def convert_single_example(ex_index, example, label_list, max_seq_length,
-                           tokenizer):
+def convert_single_example(ex_index, example, label_list, max_seq_length, tokenizer):
     """Converts a single `InputExample` into a single `InputFeatures`."""
-
     if isinstance(example, PaddingInputExample):
         return InputFeatures(
             input_ids=[0] * max_seq_length,
@@ -233,7 +231,6 @@ def convert_single_example(ex_index, example, label_list, max_seq_length,
             segment_ids=[0] * max_seq_length,
             label_id=0,
             is_real_example=False)
-
     label_map = {}
     for (i, label) in enumerate(label_list):
         label_map[label] = i
@@ -305,15 +302,15 @@ def convert_single_example(ex_index, example, label_list, max_seq_length,
     assert len(segment_ids) == max_seq_length
 
     label_id = label_map[example.label]
-    if ex_index < 5:
-        tf.logging.info("*** Example ***")
-        tf.logging.info("guid: %s" % (example.guid))
-        tf.logging.info("tokens: %s" % " ".join(
-            [tokenization.printable_text(x) for x in tokens]))
-        tf.logging.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-        tf.logging.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
-        tf.logging.info("segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
-        tf.logging.info("label: %s (id = %d)" % (example.label, label_id))
+    # if ex_index < 5:
+    #     tf.logging.info("*** Example ***")
+    #     tf.logging.info("guid: %s" % (example.guid))
+    #     tf.logging.info("tokens: %s" % " ".join(
+    #         [tokenization.printable_text(x) for x in tokens]))
+    #     tf.logging.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
+    #     tf.logging.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
+    #     tf.logging.info("segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
+    #     tf.logging.info("label: %s (id = %d)" % (example.label, label_id))
 
     feature = InputFeatures(
         input_ids=input_ids,
@@ -324,18 +321,14 @@ def convert_single_example(ex_index, example, label_list, max_seq_length,
     return feature
 
 
-def file_based_convert_examples_to_features(
-        examples, label_list, max_seq_length, tokenizer, output_file):
+def file_based_convert_examples_to_features(examples, label_list, max_seq_length, tokenizer, output_file):
     """Convert a set of `InputExample`s to a TFRecord file."""
-
     writer = tf.python_io.TFRecordWriter(output_file)
-
     for (ex_index, example) in enumerate(examples):
         if ex_index % 10000 == 0:
             tf.logging.info("Writing example %d of %d" % (ex_index, len(examples)))
 
-        feature = convert_single_example(ex_index, example, label_list,
-                                         max_seq_length, tokenizer)
+        feature = convert_single_example(ex_index, example, label_list, max_seq_length, tokenizer)
 
         def create_int_feature(values):
             f = tf.train.Feature(int64_list=tf.train.Int64List(value=list(values)))
@@ -346,16 +339,14 @@ def file_based_convert_examples_to_features(
         features["input_mask"] = create_int_feature(feature.input_mask)
         features["segment_ids"] = create_int_feature(feature.segment_ids)
         features["label_ids"] = create_int_feature([feature.label_id])
-        features["is_real_example"] = create_int_feature(
-            [int(feature.is_real_example)])
+        features["is_real_example"] = create_int_feature([int(feature.is_real_example)])
 
         tf_example = tf.train.Example(features=tf.train.Features(feature=features))
         writer.write(tf_example.SerializeToString())
     writer.close()
 
 
-def file_based_input_fn_builder(input_file, seq_length, is_training,
-                                drop_remainder):
+def file_based_input_fn_builder(input_file, seq_length, is_training, drop_remainder):
     """Creates an `input_fn` closure to be passed to TPUEstimator."""
 
     name_to_features = {
@@ -481,13 +472,11 @@ def create_model(bert_config, is_training, input_ids, input_mask, segment_ids,
 
 def layer_norm(input_tensor, name=None):
     """Run layer normalization on the last dimension of the tensor."""
-    return tf.contrib.layers.layer_norm(
-        inputs=input_tensor, begin_norm_axis=-1, begin_params_axis=-1, scope=name)
+    return tf.contrib.layers.layer_norm(inputs=input_tensor, begin_norm_axis=-1, begin_params_axis=-1, scope=name)
 
 
 def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
-                     num_train_steps, num_warmup_steps, use_tpu,
-                     use_one_hot_embeddings):
+                     num_train_steps, num_warmup_steps, use_tpu, use_one_hot_embeddings):
     """Returns `model_fn` closure for TPUEstimator."""
 
     def model_fn(features, labels, mode, params):  # pylint: disable=unused-argument
